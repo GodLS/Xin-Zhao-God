@@ -159,6 +159,9 @@ namespace Xin
             var UseIgnite = Config.Item("UseIgnite").GetValue<bool>();
             var UseItems = Config.Item("UseItems").GetValue<bool>();
 
+            if (target == null)
+                return;
+
             if (E.IsReady() && Player.Distance(target.ServerPosition) >= dist && eCombo && target.IsValidTarget(E.Range))
             {
                 E.Cast(target);
@@ -248,6 +251,9 @@ namespace Xin
             var target = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
             var eHarass = Config.Item("UseEHarass").GetValue<bool>();
 
+            if (target == null)
+                return;
+
             if (E.IsReady() && Player.Distance(target.ServerPosition) >= dist && eHarass)
             {
                 E.Cast(target);
@@ -259,6 +265,9 @@ namespace Xin
             var target = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
             var eKS = Config.Item("KillstealE").GetValue<bool>();
             var rKS = Config.Item("KillstealR").GetValue<bool>();
+
+            if (target == null)
+                return;
 
             if (E.IsReady() && E.GetDamage(target) >= target.Health && eKS)
             {
@@ -273,6 +282,9 @@ namespace Xin
 
         private static void OrbwalkingOnBeforeAttack(Orbwalking.BeforeAttackEventArgs args)
         {
+            if (args.Target == null)
+                return;
+
             if (args.Target is Obj_AI_Hero && W.IsReady())
             {
                 W.Cast();
@@ -285,6 +297,8 @@ namespace Xin
             var qHarass = Config.Item("UseQHarass").GetValue<bool>();
             var UseItems = Config.Item("UseItems").GetValue<bool>();
 
+            if (target == null)
+                return;
 
             if (!unit.IsMe)
                 return;
@@ -349,6 +363,7 @@ namespace Xin
             var challenged = Config.Item("challenged").GetValue<Circle>();
             var target = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
 
+
             if (eRangeMin.Active)
             {
                 Render.Circle.DrawCircle(Player.Position, dist, eRangeMin.Color);
@@ -363,6 +378,9 @@ namespace Xin
             {
                 Render.Circle.DrawCircle(Player.Position, R.Range, rRange.Color);
             }
+
+            if (target == null)
+                return;
 
             if (target.HasBuff("xenzhaointimidate"))
             {
