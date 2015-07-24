@@ -23,7 +23,6 @@ namespace Xin
         private static SpellSlot ignite;
         private static Items.Item youmuu, cutlass, blade, tiamat, hydra;
 
-
         static void Main(string[] args)
         {
             CustomEvents.Game.OnGameLoad += GameOnOnGameLoad;
@@ -33,7 +32,7 @@ namespace Xin
         {
             Player = ObjectManager.Player;
 
-            if (Player.BaseSkinName != "XinZhao")
+            if (Player.CharData.BaseSkinName != "XinZhao")
             {
                 return;
             }
@@ -56,9 +55,9 @@ namespace Xin
             Orbwalker = new Xin.Orbwalking.Orbwalker(orbwalkerMenu);
             Config.AddSubMenu(orbwalkerMenu);
 
-            var TargetSelectorMenu = new Menu("Target Selector", "Target Selector");
-            TargetSelector.AddToMenu(TargetSelectorMenu);
-            Config.AddSubMenu(TargetSelectorMenu);
+            var targetSelectorMenu = new Menu("Target Selector", "Target Selector");
+            TargetSelector.AddToMenu(targetSelectorMenu);
+            Config.AddSubMenu(targetSelectorMenu);
 
             var comboMenu = new Menu("Combo", "Combo");
             comboMenu.AddItem(new MenuItem("UseQCombo", "Use Q in Combo").SetValue(true));
@@ -77,6 +76,12 @@ namespace Xin
             harassMenu.AddItem(new MenuItem("UseEHarass", "Use E in Harass").SetValue(true));
             harassMenu.AddItem(new MenuItem("MinERangeHarass", "Minimum Range to E").SetValue(new Slider(350, 0, 600)));
             Config.AddSubMenu(harassMenu);
+
+            var laneclearMenu = new Menu("Harass", "Harass");
+            laneclearMenu.AddItem(new MenuItem("UseQLaneclear", "Use Q in Laneclear").SetValue(true));
+            laneclearMenu.AddItem(new MenuItem("UseWLaneclear", "Use W in Laneclear").SetValue(true));
+            laneclearMenu.AddItem(new MenuItem("UseELaneclear", "Use E in Laneclear").SetValue(true));
+            Config.AddSubMenu(laneclearMenu);
 
             var drawingsMenu = new Menu("Drawings", "Drawings");            
             drawingsMenu.AddItem(new MenuItem("eRangeMin", "E Range Minimum").SetValue(new Circle(true, Color.FromArgb(100, 255, 255, 255))));
@@ -142,22 +147,35 @@ namespace Xin
                 case Orbwalking.OrbwalkingMode.Mixed:
                     Harass();
                     break;
+                    case Orbwalking.OrbwalkingMode.LaneClear:
+                    Laneclear();
+                    break;
             }
             Killsteal();
+        }
+
+        private static void Laneclear()
+        {
+            var minions =
+                MinionManager.GetMinions(E.Range, MinionTypes.All, MinionTeam.NotAlly).FirstOrDefault(m => m.IsValid);
+
+            if (minions == null)
+                return;
+
+            if (Config.Item("UseELaneclear").GetValue<bool>() && E.IsReady())
+                E.CastOnUnit(minions);
         }
 
         private static void Combo()
         {
             var dist = Config.Item("MinERangeCombo").GetValue<Slider>().Value;
             var target = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
-            var target2 = TargetSelector.GetTarget(E.Range + 500, TargetSelector.DamageType.Physical);
-            var qCombo = Config.Item("UseQCombo").GetValue<bool>();
             var eCombo = Config.Item("UseECombo").GetValue<bool>();
             var rCombo = Config.Item("UseRCombo").GetValue<bool>();
             var rComboKillable = Config.Item("UseRComboKillable").GetValue<bool>();
             var rComboAoE = Config.Item("UseRAoE").GetValue<bool>();
-            var UseIgnite = Config.Item("UseIgnite").GetValue<bool>();
-            var UseItems = Config.Item("UseItems").GetValue<bool>();
+            var useIgnite = Config.Item("UseIgnite").GetValue<bool>();
+            var useItems = Config.Item("UseItems").GetValue<bool>();
 
             if (target == null)
                 return;
@@ -200,35 +218,28 @@ namespace Xin
                 }
             }
 
-            if (Player.Distance(target.ServerPosition) <= 600 && ComboDamage(target) >= target.Health && UseIgnite)
+            if (Player.Distance(target.ServerPosition) <= 600 && ComboDamage(target) >= target.Health && useIgnite)
             {
                 Player.Spellbook.CastSpell(ignite, target);
             }
 
-            if (UseItems && youmuu.IsReady() && target.IsValidTarget(E.Range)) 
+            if (useItems && youmuu.IsReady() && target.IsValidTarget(E.Range)) 
             {
                 youmuu.Cast();
             }
 
-            if (UseItems && Player.Distance(target.ServerPosition) <= 450 && cutlass.IsReady())
+            if (useItems && Player.Distance(target.ServerPosition) <= 450 && cutlass.IsReady())
             {
                 cutlass.Cast(target);
             }
 
-            if (UseItems && Player.Distance(target.ServerPosition) <= 450 && blade.IsReady())
+            if (useItems && Player.Distance(target.ServerPosition) <= 450 && blade.IsReady())
             {
                 blade.Cast(target);
             }
         }
 
-        private static float igniteDamage(Obj_AI_Hero target)
-        {
-            if (ignite == SpellSlot.Unknown || Player.Spellbook.CanUseSpell(ignite) != SpellState.Ready)
-            {
-                return 0f;
-            }
-            return (float)Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
-        }
+
 
            //if (E.IsReady() && Player.Distance(target2.ServerPosition) > E.Range)
             //{
@@ -282,10 +293,9 @@ namespace Xin
 
         private static void OrbwalkingOnBeforeAttack(Orbwalking.BeforeAttackEventArgs args)
         {
-            if (args.Target == null)
-                return;
+            if (!W.IsReady()) return;
 
-            if (args.Target is Obj_AI_Hero && W.IsReady())
+            if (args.Target.Type == GameObjectType.obj_AI_Hero && Config.Item("UseWCombo").GetValue<bool>() || Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear && args.Target.Type == GameObjectType.obj_AI_Minion && Config.Item("UseWLaneclear").GetValue<bool>())
             {
                 W.Cast();
             }
@@ -295,7 +305,9 @@ namespace Xin
         {
             var qCombo = Config.Item("UseQCombo").GetValue<bool>();
             var qHarass = Config.Item("UseQHarass").GetValue<bool>();
-            var UseItems = Config.Item("UseItems").GetValue<bool>();
+            var useItems = Config.Item("UseItems").GetValue<bool>();
+            var aaDelay = Player.AttackDelay * 100 + Game.Ping / 2f;
+
 
             if (target == null)
                 return;
@@ -309,17 +321,15 @@ namespace Xin
                 if (Q.IsReady() && qCombo)
                 {
                     // chewy
-                    var aaDelay = Player.AttackDelay * 100 + Game.Ping / 2f;
-
                     Utility.DelayAction.Add(
                        (int)(aaDelay), () =>
                        {
                            Q.Cast();
 
-                           if (Items.CanUseItem(3074) && UseItems && Player.Distance(target) <= 400)
+                           if (Items.CanUseItem(3074) && useItems && Player.Distance(target) <= 400)
                                Items.UseItem(3074);
 
-                           if (Items.CanUseItem(3077) && UseItems && Player.Distance(target) <= 400)
+                           if (Items.CanUseItem(3077) && useItems && Player.Distance(target) <= 400)
                                Items.UseItem(3077);
                        });
 
@@ -333,8 +343,6 @@ namespace Xin
                 if (Q.IsReady() && qHarass)
                 {
                     // chewy
-                    var aaDelay = Player.AttackDelay * 100 + Game.Ping / 2f;
-
                     Utility.DelayAction.Add(
                        (int)(aaDelay), () =>
                        {
@@ -342,6 +350,9 @@ namespace Xin
                        });
                 }
             }
+
+            if (Config.Item("UseQLaneclear").GetValue<bool>() && target.Type == GameObjectType.obj_AI_Minion && Q.IsReady() && Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear)
+                Utility.DelayAction.Add((int)(aaDelay), () => Q.Cast());
         }
                
 
