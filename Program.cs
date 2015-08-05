@@ -51,7 +51,7 @@ namespace Xin
            
             Config = new Menu("Xin Zhao God", "XinZhaoGod", true);
 
-            Menu orbwalkerMenu = new Menu("Orbwalker", "Orbwalker");
+            var orbwalkerMenu = new Menu("Orbwalker", "Orbwalker");
             Orbwalker = new Xin.Orbwalking.Orbwalker(orbwalkerMenu);
             Config.AddSubMenu(orbwalkerMenu);
 
@@ -77,7 +77,7 @@ namespace Xin
             harassMenu.AddItem(new MenuItem("MinERangeHarass", "Minimum Range to E").SetValue(new Slider(350, 0, 600)));
             Config.AddSubMenu(harassMenu);
 
-            var laneclearMenu = new Menu("Harass", "Harass");
+            var laneclearMenu = new Menu("Laneclear", "Laneclear");
             laneclearMenu.AddItem(new MenuItem("UseQLaneclear", "Use Q in Laneclear").SetValue(true));
             laneclearMenu.AddItem(new MenuItem("UseWLaneclear", "Use W in Laneclear").SetValue(true));
             laneclearMenu.AddItem(new MenuItem("UseELaneclear", "Use E in Laneclear").SetValue(true));
